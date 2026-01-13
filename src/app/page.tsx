@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { ExternalLink, RefreshCw, Clock, TrendingUp, Flame, Zap, ArrowUpRight, HelpCircle, Newspaper, Activity, SlidersHorizontal, X, ChevronDown, Filter, Eye, Globe } from 'lucide-react'
+import { ExternalLink, RefreshCw, Clock, TrendingUp, Flame, Zap, ArrowUpRight, HelpCircle, Newspaper, Activity, SlidersHorizontal, X, ChevronDown, Filter, Eye } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 interface NewsArticle {
@@ -88,7 +88,6 @@ export default function NewsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [lang, setLang] = useState<'en' | 'vi'>('en')
 
   // Filter and sort state
   const [sortBy, setSortBy] = useState<SortOption>('impact-desc')
@@ -111,7 +110,7 @@ export default function NewsPage() {
 
     try {
       const refreshParam = forceRefresh ? '&refresh=true' : ''
-      const response = await fetch(`/api/news?category=${selectedCategory}&lang=${lang}${refreshParam}`)
+      const response = await fetch(`/api/news?category=${selectedCategory}${refreshParam}`)
       if (!response.ok) throw new Error('Failed to fetch news')
 
       const data = await response.json()
@@ -139,7 +138,7 @@ export default function NewsPage() {
 
   useEffect(() => {
     fetchNews(false)
-  }, [selectedCategory, lang])
+  }, [selectedCategory])
 
   const handleRefresh = () => {
     fetchNews(true, true)
@@ -345,18 +344,6 @@ export default function NewsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Language Toggle */}
-              <Button
-                onClick={() => setLang(lang === 'en' ? 'vi' : 'en')}
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 font-medium"
-                title={`Switch to ${lang === 'en' ? 'Vietnamese' : 'English'}`}
-              >
-                <Globe className="h-4 w-4 mr-1.5" />
-                {lang === 'en' ? 'EN' : 'VI'}
-              </Button>
-
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted">
@@ -652,10 +639,6 @@ export default function NewsPage() {
                   <span>
                     Showing <span className="font-semibold text-foreground">{processedArticles.length}</span> of <span className="font-semibold text-foreground">{articles.length}</span> articles
                   </span>
-                  <span className="text-muted-foreground/50">•</span>
-                  <Badge variant="outline" className="h-5 text-[10px] px-1.5 border-primary/30">
-                    {lang === 'en' ? '🇺🇸 EN' : '🇻🇳 VI'}
-                  </Badge>
                 </div>
               </div>
             )}
