@@ -192,14 +192,17 @@ async function fetchRSSFeed(url: string, category: string): Promise<any[]> {
     const items = feed.items || []
     console.log(`[RSS] Parsed ${items.length} items from ${url}`)
 
-    return items.slice(0, 15).map((item: any) => {
+    return items.slice(0, 15).map((item: any, index: number) => {
       const publishedAt = new Date(item.pubDate || item.isoDate || Date.now())
       const description = (item.contentSnippet || item.content || '').toString().slice(0, 500)
       const contentLength = description.length
       const link = item.link || item.guid || ''
 
+      // Create a unique ID using URL + category + index to avoid collisions
+      const uniqueId = `${category}-${link}-${index}`
+
       return {
-        id: Buffer.from(link).toString('base64').slice(0, 20),
+        id: Buffer.from(uniqueId).toString('base64'),
         title: item.title || 'Untitled',
         description: description,
         url: link,
