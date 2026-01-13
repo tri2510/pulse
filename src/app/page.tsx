@@ -283,8 +283,8 @@ export default function NewsPage() {
       filtered = filtered.filter(article => filters.sources.includes(article.source))
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
+    // Apply sorting - use toSorted to avoid mutating the array
+    const sorted = filtered.toSorted((a, b) => {
       switch (sortBy) {
         case 'impact-desc':
           return b.importance - a.importance
@@ -305,7 +305,7 @@ export default function NewsPage() {
       }
     })
 
-    return filtered
+    return sorted
   }, [articles, selectedCategory, filters, sortBy])
 
   const ImpactBadge = ({ label, bg, text, border, icon: Icon }: any) => (
