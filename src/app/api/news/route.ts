@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Parser from 'rss-parser'
 
-const parser = new Parser({
-  timeout: 15000,
-  customFields: {
-    item: [
-      ['media:content', 'media'],
-      ['enclosure', 'enclosure'],
-    ]
-  }
-})
+// GDELT GKG API endpoint
+const GDELT_GKG_API = 'https://api.gdeltproject.org/api/v2/doc/doc'
 
-// Sample fallback data in case RSS feeds fail
-const SAMPLE_ARTICLES = [
+// Sample fallback data when GDELT fails
+const SAMPLE_ARTICLES_EN = [
   {
-    id: 'sample-1',
+    id: 'sample-en-1',
     title: 'AI Revolution: How Machine Learning is Transforming Industries',
-    description: 'Artificial intelligence continues to reshape sectors from healthcare to finance, with new breakthroughs announced daily.',
+    description: 'Artificial intelligence continues to reshape sectors from healthcare to finance.',
     url: 'https://example.com/ai-revolution',
     imageUrl: null,
     publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -27,7 +19,7 @@ const SAMPLE_ARTICLES = [
     views: 1247,
   },
   {
-    id: 'sample-2',
+    id: 'sample-en-2',
     title: 'Global Markets Rally as Economic Indicators Show Growth',
     description: 'Stock markets worldwide reached new highs as latest economic data suggests continued global expansion.',
     url: 'https://example.com/markets-rally',
@@ -40,7 +32,7 @@ const SAMPLE_ARTICLES = [
     views: 892,
   },
   {
-    id: 'sample-3',
+    id: 'sample-en-3',
     title: 'Breakthrough in Quantum Computing Opens New Possibilities',
     description: 'Scientists achieve major milestone in quantum computing, bringing practical applications closer than ever.',
     url: 'https://example.com/quantum-breakthrough',
@@ -53,7 +45,7 @@ const SAMPLE_ARTICLES = [
     views: 1534,
   },
   {
-    id: 'sample-4',
+    id: 'sample-en-4',
     title: 'New Health Guidelines Released for Preventive Care',
     description: 'Health officials update recommendations for preventive screenings and wellness checkups.',
     url: 'https://example.com/health-guidelines',
@@ -66,7 +58,7 @@ const SAMPLE_ARTICLES = [
     views: 645,
   },
   {
-    id: 'sample-5',
+    id: 'sample-en-5',
     title: 'Championship Finals Set After Dramatic Semifinals',
     description: 'In stunning upsets, underdogs advance to face defending champions in what promises to be an epic finale.',
     url: 'https://example.com/championship-finals',
@@ -78,68 +70,166 @@ const SAMPLE_ARTICLES = [
     importance: 88,
     views: 2134,
   },
+]
+
+const SAMPLE_ARTICLES_VI = [
   {
-    id: 'sample-6',
-    title: 'Blockbuster Film Breaks Opening Weekend Records',
-    description: 'The highly anticipated sequel exceeds expectations with unprecedented global box office performance.',
-    url: 'https://example.com/blockbuster-records',
+    id: 'sample-vi-1',
+    title: 'Cách mạng AI: Trí tuệ nhân tạo đang thay đổi ngành công nghiệp như thế nào',
+    description: 'Trí tuệ nhân tạo tiếp tục định hình lại các ngành từ y tế đến tài chính, với những đột phá mới được công bố hàng ngày.',
+    url: 'https://example.com/ai-cach-mang',
     imageUrl: null,
-    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    source: 'Entertainment Weekly',
-    category: 'entertainment',
-    author: 'Lisa Wang',
-    importance: 75,
-    views: 1876,
+    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    source: 'Tech Daily Việt Nam',
+    category: 'technology',
+    author: 'Minh Anh',
+    importance: 85,
+    views: 1247,
+  },
+  {
+    id: 'sample-vi-2',
+    title: 'Thị trường tài chính toàn cầu tăng mạnh khi các chỉ báo kinh tế cho thấy tăng trưởng',
+    description: 'Thị trường chứng khoán trên toàn thế giới đạt mức cao mới khi dữ liệu kinh tế mới nhất cho thấy sự mở rộng toàn cầu tiếp tục.',
+    url: 'https://example.com/thi-truong-tang',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    source: 'Financial Times Việt Nam',
+    category: 'business',
+    author: 'Hoàng Nam',
+    importance: 78,
+    views: 892,
+  },
+  {
+    id: 'sample-vi-3',
+    title: 'Đột phá trong máy tính lượng tử mở ra những khả năng mới',
+    description: 'Các nhà khoa học đạt cột mốc quan trọng trong máy tính lượng tử, đưa các ứng dụng thực tế đến gần hơn bao giờ hết.',
+    url: 'https://example.com/luong-tu',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    source: 'Science News Việt Nam',
+    category: 'science',
+    author: 'Dr. Thanh Mai',
+    importance: 92,
+    views: 1534,
+  },
+  {
+    id: 'sample-vi-4',
+    title: 'Hướng dẫn chăm sóc sức khỏe mới được ban hành',
+    description: 'Các quan chức y tế cập nhật các khuyến nghị về sàng lọc phòng ngừa và kiểm tra sức khỏe.',
+    url: 'https://example.com/suc-khoe',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    source: 'Health Watch Việt Nam',
+    category: 'health',
+    author: 'Dr. Minh Đức',
+    importance: 71,
+    views: 645,
+  },
+  {
+    id: 'sample-vi-5',
+    title: 'Trận chung kết được xác định sau bán kết kịch tính',
+    description: 'Trong những bất ngờ gây sốc, các đội cửa dưới đi tiếp gặp đương kim vô địch trong trận chung kết hứa hẹn sẽ cực kỳ kịch tính.',
+    url: 'https://example.com/chung-ket',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    source: 'Sports Central Việt Nam',
+    category: 'sports',
+    author: 'Tuấn Kiệt',
+    importance: 88,
+    views: 2134,
   },
 ]
 
-const RSS_SOURCES = {
-  technology: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
-    'https://www.theverge.com/rss/index.xml',
-    'https://feeds.macrumors.com/MacRumors-All',
-  ],
-  business: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',
-    'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
-  ],
-  science: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Science.xml',
-    'https://feeds.feedburner.com/NewScientist',
-  ],
-  health: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Health.xml',
-  ],
-  sports: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml',
-    'https://www.espn.com/espn/rss/news',
-  ],
-  entertainment: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml',
-    'https://feeds.feedburner.com/variety/headlines',
-  ],
-  politics: [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml',
-  ],
+// Category to GDELT theme mapping
+const CATEGORY_THEMES: Record<string, string> = {
+  technology: 'TECHNOLOGY_COMPUTERS_TELECOMMUNICATIONS',
+  business: 'ECONOMY_MARKETS_FINANCE',
+  science: 'SCIENCE_TECHNOLOGY_RESEARCH',
+  health: 'HEALTH_MEDICAL_PHARMACEUTICALS',
+  sports: 'SPORTS_GAME',
+  entertainment: 'ARTS_CULTURE_ENTERTAINMENT',
+  politics: 'POLITICS_ELECTION_CAMPAIGN',
+  all: '',
 }
 
-const SOURCE_NAMES: Record<string, string> = {
-  'www.nytimes.com': 'New York Times',
-  'www.theverge.com': 'The Verge',
-  'www.macrumors.com': 'MacRumors',
-  'feeds.a.dj.com': 'Wall Street Journal',
-  'www.newscientist.com': 'New Scientist',
-  'www.espn.com': 'ESPN',
-  'feeds.feedburner.com': 'Variety',
+// Language code mapping
+const LANGUAGE_CODES: Record<string, string> = {
+  en: 'English',
+  vi: 'Vietnamese',
 }
 
-function getSourceName(url: string): string {
+async function fetchFromGDELT(category: string, lang: string): Promise<any[]> {
   try {
-    const hostname = new URL(url).hostname
-    return SOURCE_NAMES[hostname] || hostname.replace('www.', '').split('.')[0]
-  } catch {
-    return 'Unknown'
+    const timestamp = Math.floor(Date.now() / 1000)
+    const timeRange = timestamp - 24 * 60 * 60 // Last 24 hours
+
+    // Build GDELT API query parameters
+    const params = new URLSearchParams({
+      mode: 'artlist',
+      format: 'json',
+      maxrecords: '50',
+      startdatetime: timeRange.toString(),
+      enddatetime: timestamp.toString(),
+      lang: lang,
+      sort: 'HybridRel'
+    })
+
+    // Add category/theme filter if specified
+    const theme = CATEGORY_THEMES[category]
+    if (theme) {
+      params.append('theme', theme)
+    }
+
+    const url = `${GDELT_GKG_API}?${params.toString()}`
+    console.log(`[GDELT] Fetching: ${url}`)
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (!response.ok) {
+      console.log(`[GDELT] Failed: ${response.status}`)
+      return []
+    }
+
+    const data = await response.json()
+    const articles = data.articles || []
+
+    console.log(`[GDELT] Got ${articles.length} articles`)
+
+    return articles.map((item: any, index: number) => {
+      const publishedAt = item.seendate ? new Date(item.seendate * 1000) : new Date()
+
+      // Calculate importance based on GDELT metrics
+      let importance = 50
+      if (item.tone) importance += (item.tone + 10) * 0.5
+      if (item.goldsteinscale) importance += Math.abs(item.goldsteinscale) * 5
+      importance = Math.round(Math.min(100, Math.max(0, importance)))
+
+      return {
+        id: `${lang}-${category}-${index}-${item.url || index}`,
+        title: item.title || 'Untitled',
+        description: item.seenqty ? `${item.seenqty} mentions across global media` : null,
+        url: item.url || '#',
+        imageUrl: item.socialimage || null,
+        publishedAt: publishedAt.toISOString(),
+        source: item.domain || 'Unknown',
+        category: category,
+        author: null,
+        importance,
+        views: item.seenqty ? Math.min(item.seenqty * 10, 2000) : Math.floor(Math.random() * 900) + 100,
+      }
+    })
+  } catch (error: any) {
+    console.log(`[GDELT] Error: ${error?.message || error}`)
+    return []
   }
+}
+
+function getSourceName(domain: string, lang: string): string {
+  if (!domain) return 'Unknown'
+  // Remove TLD and return clean name
+  return domain.replace('www.', '').split('.')[0]
 }
 
 function calculateImportance(
@@ -150,15 +240,10 @@ function calculateImportance(
   const hoursAgo = (Date.now() - pubDate.getTime()) / (1000 * 60 * 60)
 
   let score = 0
-
-  // Recency score (more recent = higher score)
   score += Math.max(0, 50 - hoursAgo) * 1.5
-
-  // Content length score
   score += Math.min(contentLength / 50, 20)
 
-  // Premium source boost
-  const premiumSources = ['nytimes.com', 'theverge.com', 'wsj.com']
+  const premiumSources = ['nytimes.com', 'theverge.com', 'wsj.com', 'vnexpress.net', 'thanhnien.vn', 'tuoitre.vn']
   if (premiumSources.some(s => source.includes(s))) {
     score += 15
   }
@@ -166,134 +251,56 @@ function calculateImportance(
   return Math.round(Math.min(score, 100))
 }
 
-async function fetchRSSFeed(url: string, category: string): Promise<any[]> {
-  try {
-    console.log(`[RSS] Attempting to fetch: ${url}`)
-
-    // First try to fetch the XML content directly
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(12000),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)',
-      },
-    })
-
-    if (!response.ok) {
-      console.log(`[RSS] Failed to fetch ${url}: ${response.status}`)
-      return []
-    }
-
-    const xml = await response.text()
-    console.log(`[RSS] Fetched ${xml.length} bytes from ${url}`)
-
-    // Parse the XML
-    const feed = await parser.parseString(xml)
-
-    const items = feed.items || []
-    console.log(`[RSS] Parsed ${items.length} items from ${url}`)
-
-    return items.slice(0, 15).map((item: any, index: number) => {
-      const publishedAt = new Date(item.pubDate || item.isoDate || Date.now())
-      const description = (item.contentSnippet || item.content || '').toString().slice(0, 500)
-      const contentLength = description.length
-      const link = item.link || item.guid || ''
-
-      // Create a unique ID using URL + category + index to avoid collisions
-      const uniqueId = `${category}-${link}-${index}`
-
-      return {
-        id: Buffer.from(uniqueId).toString('base64'),
-        title: item.title || 'Untitled',
-        description: description,
-        url: link,
-        imageUrl: item.enclosure?.url || null,
-        publishedAt: publishedAt.toISOString(),
-        source: getSourceName(link),
-        category: category,
-        author: item.creator || item.author || null,
-        importance: calculateImportance(publishedAt, contentLength, getSourceName(link)),
-        views: Math.floor(Math.random() * 900) + 100,
-      }
-    })
-  } catch (error: any) {
-    console.log(`[RSS] Error fetching ${url}: ${error?.message || error}`)
-    return []
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || 'all'
+    const lang = (searchParams.get('lang') || 'en') as 'en' | 'vi'
 
-    console.log(`[API] Fetching news for category: ${category}`)
+    console.log(`[API] Fetching GDELT news - category: ${category}, language: ${lang}`)
 
-    let allArticles: any[] = []
+    const SAMPLE_ARTICLES = lang === 'vi' ? SAMPLE_ARTICLES_VI : SAMPLE_ARTICLES_EN
 
-    const categoriesToFetch = category === 'all'
-      ? Object.keys(RSS_SOURCES)
-      : [category]
+    // Fetch from GDELT
+    const articles = await fetchFromGDELT(category, lang)
 
-    // Fetch from RSS feeds in parallel with Promise.allSettled
-    const fetchPromises: Promise<any[]>[] = []
-
-    for (const cat of categoriesToFetch) {
-      const feeds = RSS_SOURCES[cat as keyof typeof RSS_SOURCES] || []
-
-      for (const feedUrl of feeds) {
-        fetchPromises.push(fetchRSSFeed(feedUrl, cat))
-      }
-    }
-
-    const results = await Promise.allSettled(fetchPromises)
-
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value.length > 0) {
-        allArticles = allArticles.concat(result.value)
-      }
-    }
-
-    console.log(`[API] Fetched ${allArticles.length} total articles`)
-
-    // If no articles from RSS, use sample data
-    if (allArticles.length === 0) {
-      console.log('[API] No articles from RSS, using sample data')
-      allArticles = SAMPLE_ARTICLES.filter(a =>
-        category === 'all' || a.category === category
-      )
-    }
+    // If GDELT returns no results, use sample data
+    const finalArticles = articles.length > 0 ? articles : SAMPLE_ARTICLES
 
     // Sort by importance
-    allArticles.sort((a, b) => b.importance - a.importance)
+    finalArticles.sort((a, b) => b.importance - a.importance)
 
     // Remove duplicates by URL
     const seen = new Set<string>()
-    const uniqueArticles = allArticles.filter(article => {
+    const uniqueArticles = finalArticles.filter(article => {
       if (seen.has(article.url)) return false
       seen.add(article.url)
       return true
     })
 
-    // Limit to 50 articles
-    const articles = uniqueArticles.slice(0, 50)
+    const resultArticles = uniqueArticles.slice(0, 50)
 
-    console.log(`[API] Returning ${articles.length} articles`)
+    console.log(`[API] Returning ${resultArticles.length} articles`)
 
     return NextResponse.json({
-      articles,
+      articles: resultArticles,
       cached: false,
-      count: articles.length,
-      source: allArticles === SAMPLE_ARTICLES ? 'sample' : 'rss',
+      count: resultArticles.length,
+      source: articles.length > 0 ? 'gdelt' : 'sample',
+      lang,
     })
   } catch (error) {
-    console.error('[API] Error in news API:', error)
+    console.error('[API] Error:', error)
 
-    // Return sample data on error
+    const lang = (request.nextUrl.searchParams.get('lang') || 'en') as 'en' | 'vi'
+    const SAMPLE_ARTICLES = lang === 'vi' ? SAMPLE_ARTICLES_VI : SAMPLE_ARTICLES_EN
+
     return NextResponse.json({
       articles: SAMPLE_ARTICLES,
       cached: false,
       count: SAMPLE_ARTICLES.length,
       source: 'fallback',
+      lang,
       error: 'Using fallback data',
     })
   }
