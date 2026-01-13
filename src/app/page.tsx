@@ -99,6 +99,7 @@ export default function NewsPage() {
     sources: [],
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [showSort, setShowSort] = useState(false)
 
   const fetchNews = async (showRefreshToast = true, forceRefresh = false) => {
     if (showRefreshToast) {
@@ -423,7 +424,7 @@ export default function NewsPage() {
               <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Sort Dropdown */}
-                  <Popover>
+                  <Popover open={showSort} onOpenChange={setShowSort}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
                         <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -431,21 +432,24 @@ export default function NewsPage() {
                         <ChevronDown className="h-3 w-3" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-48 p-1.5" align="start">
+                    <PopoverContent className="w-52 p-1.5" align="start">
                       <div className="space-y-0.5">
                         {SORT_OPTIONS.map((option) => {
                           const Icon = option.icon
                           return (
                             <button
                               key={option.value}
-                              onClick={() => setSortBy(option.value)}
-                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs transition-colors ${
+                              onClick={() => {
+                                setSortBy(option.value)
+                                setShowSort(false)
+                              }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs transition-colors text-left ${
                                 sortBy === option.value
                                   ? 'bg-primary text-primary-foreground'
                                   : 'hover:bg-muted text-foreground'
                               }`}
                             >
-                              <Icon className="h-3.5 w-3.5" />
+                              <Icon className="h-3.5 w-3.5 shrink-0" />
                               {option.label}
                             </button>
                           )
