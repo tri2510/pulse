@@ -14,24 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pulse - Real-Time Insights",
-  description: "Stay ahead with real-time news analysis powered by GDELT-inspired insights. Track trending stories, understand sentiment, and discover impactful events as they happen.",
-  keywords: ["Pulse", "News", "Real-time", "Trending", "GDELT", "Sentiment", "Insights", "Analytics", "Breaking News", "Data-Driven"],
-  authors: [{ name: "Pulse Team" }],
-  icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
+  title: "Pulse - Real-Time News Intelligence",
+  description: "Stay ahead with real-time news analysis powered by GDELT-inspired analytics. Track trending stories, understand impact scores, and discover breaking news as it happens.",
+  keywords: ["Pulse", "News", "Real-time", "Trending", "GDELT", "Analytics", "Breaking News", "Data-Driven", "News Intelligence"],
+  authors: [{ name: "Pulse" }],
   openGraph: {
-    title: "Pulse - Real-Time Insights",
-    description: "Stay ahead with real-time news analysis powered by GDELT-inspired insights.",
-    url: "https://chat.z.ai",
+    title: "Pulse - Real-Time News Intelligence",
+    description: "Stay ahead with real-time news analysis powered by GDELT-inspired analytics.",
     siteName: "Pulse",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pulse - Real-Time Insights",
-    description: "Stay ahead with real-time news analysis powered by GDELT-inspired insights.",
+    title: "Pulse - Real-Time News Intelligence",
+    description: "Stay ahead with real-time news analysis powered by GDELT-inspired analytics.",
   },
 };
 
