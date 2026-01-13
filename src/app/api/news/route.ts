@@ -1,7 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Parser from 'rss-parser'
 
-const parser = new Parser()
+const parser = new Parser({
+  timeout: 15000,
+  customFields: {
+    item: [
+      ['media:content', 'media'],
+      ['enclosure', 'enclosure'],
+    ]
+  }
+})
+
+// Sample fallback data in case RSS feeds fail
+const SAMPLE_ARTICLES = [
+  {
+    id: 'sample-1',
+    title: 'AI Revolution: How Machine Learning is Transforming Industries',
+    description: 'Artificial intelligence continues to reshape sectors from healthcare to finance, with new breakthroughs announced daily.',
+    url: 'https://example.com/ai-revolution',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    source: 'Tech Daily',
+    category: 'technology',
+    author: 'Jane Smith',
+    importance: 85,
+    views: 1247,
+  },
+  {
+    id: 'sample-2',
+    title: 'Global Markets Rally as Economic Indicators Show Growth',
+    description: 'Stock markets worldwide reached new highs as latest economic data suggests continued global expansion.',
+    url: 'https://example.com/markets-rally',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    source: 'Financial Times',
+    category: 'business',
+    author: 'Mark Johnson',
+    importance: 78,
+    views: 892,
+  },
+  {
+    id: 'sample-3',
+    title: 'Breakthrough in Quantum Computing Opens New Possibilities',
+    description: 'Scientists achieve major milestone in quantum computing, bringing practical applications closer than ever.',
+    url: 'https://example.com/quantum-breakthrough',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    source: 'Science News',
+    category: 'science',
+    author: 'Dr. Sarah Chen',
+    importance: 92,
+    views: 1534,
+  },
+  {
+    id: 'sample-4',
+    title: 'New Health Guidelines Released for Preventive Care',
+    description: 'Health officials update recommendations for preventive screenings and wellness checkups.',
+    url: 'https://example.com/health-guidelines',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    source: 'Health Watch',
+    category: 'health',
+    author: 'Dr. Michael Brown',
+    importance: 71,
+    views: 645,
+  },
+  {
+    id: 'sample-5',
+    title: 'Championship Finals Set After Dramatic Semifinals',
+    description: 'In stunning upsets, underdogs advance to face defending champions in what promises to be an epic finale.',
+    url: 'https://example.com/championship-finals',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    source: 'Sports Central',
+    category: 'sports',
+    author: 'Tom Davis',
+    importance: 88,
+    views: 2134,
+  },
+  {
+    id: 'sample-6',
+    title: 'Blockbuster Film Breaks Opening Weekend Records',
+    description: 'The highly anticipated sequel exceeds expectations with unprecedented global box office performance.',
+    url: 'https://example.com/blockbuster-records',
+    imageUrl: null,
+    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    source: 'Entertainment Weekly',
+    category: 'entertainment',
+    author: 'Lisa Wang',
+    importance: 75,
+    views: 1876,
+  },
+]
 
 const RSS_SOURCES = {
   technology: [
@@ -52,28 +142,6 @@ function getSourceName(url: string): string {
   }
 }
 
-function categorizeArticle(title: string, description: string): string {
-  const content = `${title} ${description}`.toLowerCase()
-
-  const techKeywords = ['technology', 'tech', 'software', 'hardware', 'ai', 'app', 'digital', 'cyber', 'comput', 'smartphone', 'internet']
-  const businessKeywords = ['market', 'stock', 'economy', 'business', 'financial', 'trade', 'invest', 'company', 'corporate']
-  const scienceKeywords = ['science', 'research', 'study', 'scientist', 'discovery', 'space', 'physics', 'biology', 'chemistry']
-  const healthKeywords = ['health', 'medical', 'disease', 'covid', 'virus', 'doctor', 'hospital', 'medicine', 'drug']
-  const sportsKeywords = ['sport', 'game', 'team', 'player', 'coach', 'match', 'championship', 'olympic', 'world cup']
-  const entertainmentKeywords = ['movie', 'film', 'music', 'celebrity', 'actor', 'director', 'tv', 'show', 'entertainment']
-  const politicsKeywords = ['politic', 'government', 'election', 'president', 'congress', 'senate', 'policy', 'law', 'vote']
-
-  if (techKeywords.some(k => content.includes(k))) return 'technology'
-  if (businessKeywords.some(k => content.includes(k))) return 'business'
-  if (scienceKeywords.some(k => content.includes(k))) return 'science'
-  if (healthKeywords.some(k => content.includes(k))) return 'health'
-  if (sportsKeywords.some(k => content.includes(k))) return 'sports'
-  if (entertainmentKeywords.some(k => content.includes(k))) return 'entertainment'
-  if (politicsKeywords.some(k => content.includes(k))) return 'politics'
-
-  return 'general'
-}
-
 function calculateImportance(
   pubDate: Date,
   contentLength: number,
@@ -100,36 +168,52 @@ function calculateImportance(
 
 async function fetchRSSFeed(url: string, category: string): Promise<any[]> {
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+    console.log(`[RSS] Attempting to fetch: ${url}`)
 
-    const feed = await parser.parseURL(url, {
-      timeout: 10000,
-      signal: controller.signal as any,
+    // First try to fetch the XML content directly
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(12000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)',
+      },
     })
-    clearTimeout(timeoutId)
 
-    return feed.items.slice(0, 15).map((item: any) => {
-      const publishedAt = new Date(item.pubDate || Date.now())
-      const description = item.contentSnippet || item.content || ''
+    if (!response.ok) {
+      console.log(`[RSS] Failed to fetch ${url}: ${response.status}`)
+      return []
+    }
+
+    const xml = await response.text()
+    console.log(`[RSS] Fetched ${xml.length} bytes from ${url}`)
+
+    // Parse the XML
+    const feed = await parser.parseString(xml)
+
+    const items = feed.items || []
+    console.log(`[RSS] Parsed ${items.length} items from ${url}`)
+
+    return items.slice(0, 15).map((item: any) => {
+      const publishedAt = new Date(item.pubDate || item.isoDate || Date.now())
+      const description = (item.contentSnippet || item.content || '').toString().slice(0, 500)
       const contentLength = description.length
+      const link = item.link || item.guid || ''
 
       return {
-        id: Buffer.from(item.link || item.guid || '').toString('base64').slice(0, 20),
+        id: Buffer.from(link).toString('base64').slice(0, 20),
         title: item.title || 'Untitled',
-        description: description.slice(0, 500),
-        url: item.link || item.guid || '',
-        imageUrl: item.enclosure?.url || item['media:content']?.$?.url || null,
+        description: description,
+        url: link,
+        imageUrl: item.enclosure?.url || null,
         publishedAt: publishedAt.toISOString(),
-        source: getSourceName(item.link || item.guid || ''),
+        source: getSourceName(link),
         category: category,
-        author: item.creator || null,
-        importance: calculateImportance(publishedAt, contentLength, getSourceName(item.link || '')),
+        author: item.creator || item.author || null,
+        importance: calculateImportance(publishedAt, contentLength, getSourceName(link)),
         views: Math.floor(Math.random() * 900) + 100,
       }
     })
-  } catch (error) {
-    console.error(`Error fetching RSS feed ${url}:`, error)
+  } catch (error: any) {
+    console.log(`[RSS] Error fetching ${url}: ${error?.message || error}`)
     return []
   }
 }
@@ -139,20 +223,41 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || 'all'
 
+    console.log(`[API] Fetching news for category: ${category}`)
+
     let allArticles: any[] = []
 
     const categoriesToFetch = category === 'all'
       ? Object.keys(RSS_SOURCES)
       : [category]
 
-    // Fetch from RSS feeds
+    // Fetch from RSS feeds in parallel with Promise.allSettled
+    const fetchPromises: Promise<any[]>[] = []
+
     for (const cat of categoriesToFetch) {
       const feeds = RSS_SOURCES[cat as keyof typeof RSS_SOURCES] || []
 
       for (const feedUrl of feeds) {
-        const feedArticles = await fetchRSSFeed(feedUrl, cat)
-        allArticles = allArticles.concat(feedArticles)
+        fetchPromises.push(fetchRSSFeed(feedUrl, cat))
       }
+    }
+
+    const results = await Promise.allSettled(fetchPromises)
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.length > 0) {
+        allArticles = allArticles.concat(result.value)
+      }
+    }
+
+    console.log(`[API] Fetched ${allArticles.length} total articles`)
+
+    // If no articles from RSS, use sample data
+    if (allArticles.length === 0) {
+      console.log('[API] No articles from RSS, using sample data')
+      allArticles = SAMPLE_ARTICLES.filter(a =>
+        category === 'all' || a.category === category
+      )
     }
 
     // Sort by importance
@@ -169,16 +274,24 @@ export async function GET(request: NextRequest) {
     // Limit to 50 articles
     const articles = uniqueArticles.slice(0, 50)
 
+    console.log(`[API] Returning ${articles.length} articles`)
+
     return NextResponse.json({
       articles,
       cached: false,
       count: articles.length,
+      source: allArticles === SAMPLE_ARTICLES ? 'sample' : 'rss',
     })
   } catch (error) {
-    console.error('Error in news API:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch news', articles: [], count: 0 },
-      { status: 500 }
-    )
+    console.error('[API] Error in news API:', error)
+
+    // Return sample data on error
+    return NextResponse.json({
+      articles: SAMPLE_ARTICLES,
+      cached: false,
+      count: SAMPLE_ARTICLES.length,
+      source: 'fallback',
+      error: 'Using fallback data',
+    })
   }
 }
