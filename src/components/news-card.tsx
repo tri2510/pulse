@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Clock, Flame, TrendingUp, Zap, Activity, ExternalLink } from 'lucide-react'
+import { Clock, Flame, TrendingUp, Zap, Activity, ExternalLink, Newspaper } from 'lucide-react'
 import { NewsArticle } from '@/types/news'
 
 interface NewsCardProps {
@@ -52,8 +52,8 @@ export function NewsCard({ article, lang = 'en' }: NewsCardProps) {
   return (
     <Card className="group overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
       {/* Image Section */}
-      {article.imageUrl && (
-        <div className="relative h-48 overflow-hidden bg-muted">
+      <div className="relative h-48 overflow-hidden bg-muted">
+        {article.imageUrl ? (
           <img
             src={article.imageUrl}
             alt={article.title}
@@ -62,8 +62,15 @@ export function NewsCard({ article, lang = 'en' }: NewsCardProps) {
               e.currentTarget.style.display = 'none'
             }}
           />
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5">
+            <div className="flex flex-col items-center gap-3">
+              <Newspaper className="h-12 w-12 text-primary/30" strokeWidth={1.5} />
+              <span className="text-xs font-medium text-muted-foreground/70">{article.source}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <CardHeader className="pb-3 px-4">
         {/* Badges Row */}
