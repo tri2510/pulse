@@ -7,22 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { ExternalLink, RefreshCw, Clock, TrendingUp, Flame, Zap, ArrowUpRight, HelpCircle, Newspaper, Activity, SlidersHorizontal, X, ChevronDown, Filter, Eye } from 'lucide-react'
+import { RefreshCw, HelpCircle, Newspaper, SlidersHorizontal, X, ChevronDown, Filter, Eye, Flame, Zap, ArrowUpRight, TrendingUp, Activity, Clock, ExternalLink } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-
-interface NewsArticle {
-  id: string
-  title: string
-  description: string | null
-  url: string
-  imageUrl: string | null
-  source: string
-  category: string
-  author: string | null
-  publishedAt: string
-  importance: number
-  views: number
-}
+import { NewsCard } from '@/components/news-card'
+import { NewsArticle } from '@/types/news'
+import { getImpactBadge } from '@/lib/news-utils'
 
 type SortOption = 'impact-desc' | 'impact-asc' | 'views-desc' | 'views-asc' | 'date-desc' | 'date-asc' | 'source-asc'
 type ImpactLevel = 'all' | 'critical' | 'high' | 'medium' | 'low'
@@ -154,59 +143,6 @@ export default function NewsPage() {
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffHours < 48) return 'Yesterday'
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  const getImpactBadge = (importance: number) => {
-    if (importance > 75) {
-      return {
-        level: 'critical',
-        label: 'Critical',
-        bg: 'bg-red-500/15',
-        text: 'text-red-700 dark:text-red-400',
-        border: 'border-red-500/25',
-        icon: Flame,
-        barColor: 'bg-red-500',
-      }
-    }
-    if (importance > 50) {
-      return {
-        level: 'high',
-        label: 'High',
-        bg: 'bg-orange-500/15',
-        text: 'text-orange-700 dark:text-orange-400',
-        border: 'border-orange-500/25',
-        icon: Zap,
-        barColor: 'bg-orange-500',
-      }
-    }
-    if (importance > 25) {
-      return {
-        level: 'medium',
-        label: 'Medium',
-        bg: 'bg-yellow-500/15',
-        text: 'text-yellow-700 dark:text-yellow-400',
-        border: 'border-yellow-500/25',
-        icon: ArrowUpRight,
-        barColor: 'bg-yellow-500',
-      }
-    }
-    return {
-      level: 'low',
-      label: 'Low',
-      bg: 'bg-emerald-500/15',
-      text: 'text-emerald-700 dark:text-emerald-400',
-      border: 'border-emerald-500/25',
-      icon: TrendingUp,
-      barColor: 'bg-emerald-500',
-    }
-  }
-
-  const getTrendingBadge = (views: number) => {
-    if (views > 800) return { level: 'viral', label: 'Viral', color: 'text-red-600 dark:text-red-400' }
-    if (views > 500) return { level: 'hot', label: 'Hot', color: 'text-orange-600 dark:text-orange-400' }
-    if (views > 300) return { level: 'trending', label: 'Trending', color: 'text-violet-600 dark:text-violet-400' }
-    if (views > 150) return { level: 'rising', label: 'Rising', color: 'text-blue-600 dark:text-blue-400' }
-    return null
   }
 
   // Get available sources from articles
@@ -694,119 +630,13 @@ export default function NewsPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {processedArticles.map((article) => {
-                  const impact = getImpactBadge(article.importance)
-                  const trending = getTrendingBadge(article.views)
-
-                  return (
-                    <Card
-                      key={article.id}
-                      className="group overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
-                    >
-                      {/* Image Section */}
-                      {article.imageUrl && (
-                        <div className="relative h-48 overflow-hidden bg-muted">
-                          <img
-                            src={article.imageUrl}
-                            alt={article.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      <CardHeader className="pb-3 px-4">
-                        {/* Badges Row */}
-                        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                          <Badge variant="secondary" className="text-[10px] font-medium bg-muted/80 text-foreground border border-border/50 h-5">
-                            {article.source}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] font-medium border-border/50 text-muted-foreground capitalize h-5">
-                            {article.category}
-                          </Badge>
-                          {trending && (
-                            <Badge className={`text-[10px] font-bold bg-transparent ${trending.color} border-0 h-5`}>
-                              {trending.label}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <CardTitle className="text-base font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
-                          {article.title}
-                        </CardTitle>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3.5 px-4 pb-4">
-                        {/* Impact Score Bar */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <impact.icon className="h-3 w-3" />
-                              Impact
-                            </span>
-                            <span className="font-semibold text-foreground">{article.importance.toFixed(0)}</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${impact.barColor} transition-all duration-700 ease-out`}
-                              style={{ width: `${Math.min(100, article.importance)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-2 gap-2.5 py-2.5 border-y border-border/50">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] text-muted-foreground">Views</span>
-                            <span className="text-xs font-semibold text-foreground">{article.views.toLocaleString()}</span>
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] text-muted-foreground">Score</span>
-                            <span className="text-xs font-semibold text-foreground">{article.importance.toFixed(0)}</span>
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        {article.description && (
-                          <CardDescription className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
-                            {article.description}
-                          </CardDescription>
-                        )}
-
-                        {/* Meta */}
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(article.publishedAt)}
-                          </div>
-                          {article.author && (
-                            <span className="truncate max-w-[100px] font-medium text-foreground/70">{article.author}</span>
-                          )}
-                        </div>
-
-                        {/* Action Button */}
-                        <Button
-                          asChild
-                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all h-8 text-xs"
-                          size="sm"
-                        >
-                          <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-1.5"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Read Article
-                          </a>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+                {processedArticles.map((article) => (
+                  <NewsCard
+                    key={article.id}
+                    article={{ ...article, relativeDate: formatDate(article.publishedAt) }}
+                    lang="en"
+                  />
+                ))}
               </div>
             )}
           </TabsContent>

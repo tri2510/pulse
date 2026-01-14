@@ -4,21 +4,10 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Newspaper, ExternalLink, RefreshCw } from 'lucide-react'
+import { Newspaper, RefreshCw } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-
-interface NewsArticle {
-  id: string
-  title: string
-  description: string | null
-  url: string
-  imageUrl: string | null
-  publishedAt: string
-  source: string
-  category: string
-  importance: number
-  views: number
-}
+import { NewsCard } from '@/components/news-card'
+import { NewsArticle } from '@/types/news'
 
 const CATEGORIES = [
   { id: 'all', label: 'Tất cả', icon: Newspaper },
@@ -168,43 +157,11 @@ export default function VietnameseNewsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {articles.map((article) => (
-              <Card key={article.id} className="overflow-hidden border border-border/50 hover:shadow-md transition-shadow">
-                {article.imageUrl && (
-                  <div className="h-44 overflow-hidden bg-muted">
-                    <img
-                      src={article.imageUrl}
-                      alt={article.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-                    <span className="font-medium">{article.source}</span>
-                    <span>•</span>
-                    <span>{formatDate(article.publishedAt)}</span>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2 line-clamp-2 text-sm">
-                    {article.title}
-                  </h3>
-                  {article.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                      {article.description}
-                    </p>
-                  )}
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    Đọc thêm <ExternalLink className="h-3 w-3" />
-                  </a>
-                </CardContent>
-              </Card>
+              <NewsCard
+                key={article.id}
+                article={{ ...article, relativeDate: formatDate(article.publishedAt) }}
+                lang="vi"
+              />
             ))}
           </div>
         )}
