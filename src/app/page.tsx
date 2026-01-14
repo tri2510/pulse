@@ -168,17 +168,19 @@ export default function NewsPage() {
 
     // Apply trending level filter
     if (filters.trendingLevel !== 'all') {
-      const trendingConfig = TRENDING_LEVELS.find(t => t.value === filters.trendingLevel)
-      if (trendingConfig) {
-        filtered = filtered.filter(article => article.views >= trendingConfig.minViews)
+      const trendingConfig = { viral: 800, hot: 500, trending: 300, rising: 150 }
+      const minViews = trendingConfig[filters.trendingLevel as keyof typeof trendingConfig]
+      if (minViews) {
+        filtered = filtered.filter(article => article.views >= minViews)
       }
     }
 
     // Apply time range filter
     if (filters.timeRange !== 'all') {
-      const rangeConfig = TIME_RANGES.find(t => t.value === filters.timeRange)
-      if (rangeConfig && rangeConfig.hours) {
-        const cutoff = Date.now() - (rangeConfig.hours * 60 * 60 * 1000)
+      const hoursMap = { today: 24, '24h': 24, week: 168, month: 720 }
+      const hours = hoursMap[filters.timeRange as keyof typeof hoursMap]
+      if (hours) {
+        const cutoff = Date.now() - (hours * 60 * 60 * 1000)
         filtered = filtered.filter(article => new Date(article.publishedAt).getTime() > cutoff)
       }
     }
