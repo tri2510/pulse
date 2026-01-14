@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Newspaper, RefreshCw, Clock } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Newspaper, RefreshCw, Clock, ChevronDown } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { NewsCard } from '@/components/news-card'
 import { FilterAndSortBar, ApiSortOption, ClientSortOption, FilterState } from '@/components/filter-sort-bar'
@@ -25,7 +26,7 @@ export default function VietnameseNewsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<0 | 60 | 300 | 900>(0) // 0=off, 60=1m, 300=5m, 900=15m
   const [nextRefreshTime, setNextRefreshTime] = useState<Date | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -148,17 +149,24 @@ export default function VietnameseNewsPage() {
 
   // Auto-refresh functionality
   useEffect(() => {
-    if (autoRefresh) {
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    if (autoRefreshInterval > 0) {
+      const intervalMs = autoRefreshInterval * 1000
       // Set initial next refresh time
-      const nextRefresh = new Date(Date.now() + 30000) // 30 seconds
+      const nextRefresh = new Date(Date.now() + intervalMs)
       setNextRefreshTime(nextRefresh)
 
       // Set up interval
       intervalRef.current = setInterval(() => {
         fetchNews(false) // Refresh without toast
         // Update next refresh time
-        setNextRefreshTime(new Date(Date.now() + 30000))
-      }, 30000) // 30 seconds
+        setNextRefreshTime(new Date(Date.now() + intervalMs))
+      }, intervalMs)
 
       return () => {
         if (intervalRef.current) {
@@ -167,32 +175,33 @@ export default function VietnameseNewsPage() {
         }
       }
     } else {
-      // Clear interval when auto-refresh is disabled
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
       setNextRefreshTime(null)
     }
-  }, [autoRefresh, selectedCategory, apiSort])
+  }, [autoRefreshInterval, selectedCategory, apiSort])
 
-  // Countdown timer for next refresh
+  // Countdown timer for next refresh (updates every second)
   useEffect(() => {
-    if (!autoRefresh || !nextRefreshTime) return
+    if (autoRefreshInterval === 0 || !nextRefreshTime) return
 
     const timer = setInterval(() => {
       setNextRefreshTime(prev => {
         if (!prev) return null
         const now = Date.now()
+        const intervalMs = autoRefreshInterval * 1000
         if (prev.getTime() <= now) {
-          return new Date(now + 30000)
+          return new Date(now + intervalMs)
         }
         return prev
       })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [autoRefresh, nextRefreshTime])
+  }, [autoRefreshInterval, nextRefreshTime])
+
+  // Calculate remaining seconds for display
+  const remainingSeconds = nextRefreshTime
+    ? Math.max(0, Math.ceil((nextRefreshTime.getTime() - Date.now()) / 1000))
+    : 0
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -235,22 +244,51 @@ export default function VietnameseNewsPage() {
                 </a>
               </Button>
 
-              {/* Auto-refresh toggle */}
-              <Button
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                variant={autoRefresh ? 'default' : 'outline'}
-                size="sm"
-                className={`h-9 px-3 font-medium ${autoRefresh ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
-              >
-                <Clock className={`h-3.5 w-3.5 mr-1.5 ${autoRefresh ? 'animate-pulse' : ''}`} />
-                {autoRefresh && nextRefreshTime ? (
-                  <span className="tabular-nums">
-                    {Math.max(0, Math.ceil((nextRefreshTime.getTime() - Date.now()) / 1000))}s
-                  </span>
-                ) : (
-                  'Auto'
-                )}
-              </Button>
+              {/* Auto-refresh dropdown */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={autoRefreshInterval > 0 ? 'default' : 'outline'}
+                    size="sm"
+                    className={`h-9 px-3 font-medium gap-1.5 ${
+                      autoRefreshInterval > 0 ? 'bg-green-600 hover:bg-green-700 text-white' : ''
+                    }`}
+                  >
+                    <Clock className={`h-3.5 w-3.5 ${autoRefreshInterval > 0 ? 'animate-pulse' : ''}`} />
+                    {autoRefreshInterval > 0 ? (
+                      <span className="tabular-nums font-medium">{remainingSeconds}s</span>
+                    ) : (
+                      'Tự động'
+                    )}
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-40 p-1" align="end">
+                  <div className="space-y-0.5">
+                    {[
+                      { value: 0, label: 'Tắt' },
+                      { value: 60, label: '1 phút' },
+                      { value: 300, label: '5 phút' },
+                      { value: 900, label: '15 phút' },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setAutoRefreshInterval(option.value as 0 | 60 | 300 | 900)}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
+                          autoRefreshInterval === option.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted text-foreground'
+                        }`}
+                      >
+                        <span>{option.label}</span>
+                        {autoRefreshInterval === option.value && autoRefreshInterval > 0 && (
+                          <span className="tabular-nums text-[10px] opacity-70">{remainingSeconds}s</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
 
               <Button
                 onClick={handleRefresh}
