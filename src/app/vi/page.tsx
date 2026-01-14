@@ -9,6 +9,7 @@ import { Newspaper, RefreshCw, Clock, ChevronDown } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { NewsCard } from '@/components/news-card'
 import { FilterAndSortBar, ApiSortOption, ClientSortOption, FilterState } from '@/components/filter-sort-bar'
+import { GoogleTranslateScript, TranslateToggle } from '@/components/google-translate-widget'
 import { NewsArticle } from '@/types/news'
 import { getImpactBadge } from '@/lib/news-utils'
 
@@ -217,6 +218,7 @@ export default function VietnameseNewsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <GoogleTranslateScript pageLang="vi" />
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -382,8 +384,11 @@ export default function VietnameseNewsPage() {
               <p className="font-semibold text-foreground text-sm">Pulse Vietnamese</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Tin tức tiếng Việt từ GDELT</p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span>© 2025</span>
+            <div className="flex items-center gap-3">
+              <TranslateToggle currentLang="vi" />
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span>© 2025</span>
+              </div>
             </div>
           </div>
         </div>

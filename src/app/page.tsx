@@ -10,6 +10,7 @@ import { RefreshCw, HelpCircle, Newspaper, Filter, X, ChevronDown, Flame, Zap, A
 import { toast } from '@/hooks/use-toast'
 import { NewsCard } from '@/components/news-card'
 import { FilterAndSortBar, ApiSortOption, ClientSortOption, FilterState } from '@/components/filter-sort-bar'
+import { GoogleTranslateScript, TranslateToggle } from '@/components/google-translate-widget'
 import { NewsArticle } from '@/types/news'
 import { getImpactBadge } from '@/lib/news-utils'
 
@@ -233,6 +234,7 @@ export default function NewsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <GoogleTranslateScript pageLang="en" />
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">
@@ -458,10 +460,13 @@ export default function NewsPage() {
                 Real-time news intelligence powered by GDELT-inspired analytics
               </p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span>Built with Next.js & shadcn/ui</span>
-              <span>•</span>
-              <span>© 2025</span>
+            <div className="flex items-center gap-3">
+              <TranslateToggle currentLang="en" />
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span>Built with Next.js & shadcn/ui</span>
+                <span>•</span>
+                <span>© 2025</span>
+              </div>
             </div>
           </div>
         </div>

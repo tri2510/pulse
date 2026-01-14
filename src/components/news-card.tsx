@@ -3,10 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Clock, Flame, TrendingUp, Zap, Activity, ExternalLink, Newspaper, Languages, Globe } from 'lucide-react'
+import { Clock, Flame, TrendingUp, Zap, Activity, ExternalLink, Newspaper } from 'lucide-react'
 import { NewsArticle } from '@/types/news'
-import { useState } from 'react'
 
 interface NewsCardProps {
   article: NewsArticle
@@ -37,33 +35,19 @@ const STRINGS = {
     viewsLabel: 'Views',
     scoreLabel: 'Score',
     readButton: 'Read article',
-    translateButton: 'Translate',
   },
   vi: {
     impactLabel: 'Mức độ',
     viewsLabel: 'Lượt xem',
     scoreLabel: 'Điểm',
     readButton: 'Đọc bài viết',
-    translateButton: 'Dịch',
   },
 } as const
 
-// Common languages for translation
-const TRANSLATE_LANGS = {
-  en: { code: 'vi', label: 'Tiếng Việt' },
-  vi: { code: 'en', label: 'English' },
-}
-
 export function NewsCard({ article, lang = 'en' }: NewsCardProps) {
-  const [showTranslateMenu, setShowTranslateMenu] = useState(false)
   const impact = getImpactBadge(article.importance)
   const trending = getTrendingBadge(article.views)
   const t = STRINGS[lang]
-
-  // Get Google Translate URL
-  const getTranslateUrl = (targetLang: string) => {
-    return `https://translate.google.com/translate?sl=${lang}&tl=${targetLang}&u=${encodeURIComponent(article.url)}`
-  }
 
   return (
     <Card className="group overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
@@ -158,97 +142,22 @@ export function NewsCard({ article, lang = 'en' }: NewsCardProps) {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          {/* Translate Button */}
-          <Popover open={showTranslateMenu} onOpenChange={setShowTranslateMenu}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-8 text-xs border-primary/30 text-primary hover:bg-primary/10"
-              >
-                <Languages className="h-3 w-3" />
-                <span className="hidden sm:inline">{t.translateButton}</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-1" align="end" side="top">
-              <div className="space-y-0.5">
-                <a
-                  href={getTranslateUrl(TRANSLATE_LANGS[lang].code)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  {TRANSLATE_LANGS[lang].label}
-                </a>
-                <a
-                  href={getTranslateUrl('fr')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  Français
-                </a>
-                <a
-                  href={getTranslateUrl('es')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  Español
-                </a>
-                <a
-                  href={getTranslateUrl('de')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  Deutsch
-                </a>
-                <a
-                  href={getTranslateUrl('ja')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  日本語
-                </a>
-                <a
-                  href={getTranslateUrl('zh')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  中文
-                </a>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Read Article Button */}
-          <Button
-            asChild
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all h-8 text-xs"
-            size="sm"
+        {/* Action Button */}
+        <Button
+          asChild
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all h-8 text-xs"
+          size="sm"
+        >
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5"
           >
-            <a
-              href={article.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5"
-            >
-              <ExternalLink className="h-3 w-3" />
-              <span className="hidden sm:inline">{t.readButton}</span>
-            </a>
-          </Button>
-        </div>
+            <ExternalLink className="h-3 w-3" />
+            <span>{t.readButton}</span>
+          </a>
+        </Button>
       </CardContent>
     </Card>
   )
