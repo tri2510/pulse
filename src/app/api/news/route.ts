@@ -23,7 +23,7 @@ async function fetchFromGDELT(category: string): Promise<any[]> {
       mode: 'artlist',
       format: 'json',
       maxrecords: '250',
-      query: keyword,
+      query: `sourcelang:English ${keyword}`,
       sort: 'HybridRel'
     })
 
