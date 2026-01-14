@@ -161,43 +161,43 @@ export default function NewsPage() {
       return {
         level: 'critical',
         label: 'Critical',
-        bg: 'bg-gradient-to-r from-red-500/20 to-rose-600/20',
+        bg: 'bg-red-500/15',
         text: 'text-red-700 dark:text-red-400',
-        border: 'border-red-500/30',
+        border: 'border-red-500/25',
         icon: Flame,
-        barColor: 'bg-gradient-to-r from-red-500 to-rose-600',
+        barColor: 'bg-red-500',
       }
     }
     if (importance > 50) {
       return {
         level: 'high',
         label: 'High',
-        bg: 'bg-gradient-to-r from-orange-500/20 to-amber-600/20',
+        bg: 'bg-orange-500/15',
         text: 'text-orange-700 dark:text-orange-400',
-        border: 'border-orange-500/30',
+        border: 'border-orange-500/25',
         icon: Zap,
-        barColor: 'bg-gradient-to-r from-orange-500 to-amber-600',
+        barColor: 'bg-orange-500',
       }
     }
     if (importance > 25) {
       return {
         level: 'medium',
         label: 'Medium',
-        bg: 'bg-gradient-to-r from-yellow-500/20 to-lime-600/20',
+        bg: 'bg-yellow-500/15',
         text: 'text-yellow-700 dark:text-yellow-400',
-        border: 'border-yellow-500/30',
+        border: 'border-yellow-500/25',
         icon: ArrowUpRight,
-        barColor: 'bg-gradient-to-r from-yellow-500 to-lime-600',
+        barColor: 'bg-yellow-500',
       }
     }
     return {
       level: 'low',
       label: 'Low',
-      bg: 'bg-gradient-to-r from-emerald-500/20 to-teal-600/20',
+      bg: 'bg-emerald-500/15',
       text: 'text-emerald-700 dark:text-emerald-400',
-      border: 'border-emerald-500/30',
+      border: 'border-emerald-500/25',
       icon: TrendingUp,
-      barColor: 'bg-gradient-to-r from-emerald-500 to-teal-600',
+      barColor: 'bg-emerald-500',
     }
   }
 
@@ -314,28 +314,18 @@ export default function NewsPage() {
   )
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Ambient background effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-transparent rounded-full blur-3xl" />
-        <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-accent/5 via-transparent to-transparent rounded-full blur-3xl" />
-      </div>
-
-      <main className="relative flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen flex flex-col bg-background">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
-              {/* Logo/Title with gradient */}
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-20 blur-xl rounded-full" />
-                  <div className="relative w-11 h-11 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg">
-                    <Newspaper className="h-5 w-5 text-primary-foreground" />
-                  </div>
+                <div className="w-11 h-11 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+                  <Newspaper className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
                     Pulse
                   </h1>
                   <p className="text-xs text-muted-foreground font-medium">Real-time news intelligence</p>
@@ -344,6 +334,17 @@ export default function NewsPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 font-medium"
+              >
+                <a href="/vi" className="flex items-center gap-1.5">
+                  🇻🇳 Tiếng Việt
+                </a>
+              </Button>
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted">
@@ -382,7 +383,7 @@ export default function NewsPage() {
                 onClick={handleRefresh}
                 disabled={refreshing || loading}
                 size="sm"
-                className="h-9 px-3 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground shadow-md hover:shadow-lg transition-all text-sm"
+                className="h-9 px-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all text-sm"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Updating' : 'Refresh'}
@@ -713,7 +714,6 @@ export default function NewsPage() {
                               e.currentTarget.style.display = 'none'
                             }}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
                         </div>
                       )}
 
@@ -790,7 +790,7 @@ export default function NewsPage() {
                         {/* Action Button */}
                         <Button
                           asChild
-                          className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground shadow-md hover:shadow-lg transition-all h-8 text-xs"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all h-8 text-xs"
                           size="sm"
                         >
                           <a

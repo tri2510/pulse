@@ -15,15 +15,16 @@ const CATEGORY_KEYWORDS: Record<string, string> = {
   all: 'news',
 }
 
-async function fetchFromGDELT(category: string): Promise<any[]> {
+async function fetchFromGDELT(category: string, lang: string = 'en'): Promise<any[]> {
   try {
     // Use a general query to get recent articles
     const keyword = CATEGORY_KEYWORDS[category] || 'news'
+    const languageFilter = lang === 'vi' ? 'sourcelang:Vietnamese' : 'sourcelang:English'
     const params = new URLSearchParams({
       mode: 'artlist',
       format: 'json',
       maxrecords: '250',
-      query: `sourcelang:English ${keyword}`,
+      query: `${languageFilter} ${keyword}`,
       sort: 'HybridRel'
     })
 
@@ -108,11 +109,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || 'all'
+    const lang = (searchParams.get('lang') || 'en') as 'en' | 'vi'
 
-    console.log(`[API] Fetching GDELT news - category: ${category}`)
+    console.log(`[API] Fetching GDELT news - category: ${category}, lang: ${lang}`)
 
     // Fetch from GDELT
-    const articles = await fetchFromGDELT(category)
+    const articles = await fetchFromGDELT(category, lang)
 
     // Sort by importance
     articles.sort((a, b) => b.importance - a.importance)
