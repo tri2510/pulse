@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Newspaper, RefreshCw } from 'lucide-react'
+import { Newspaper, RefreshCw, Clock } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { NewsCard } from '@/components/news-card'
 import { FilterAndSortBar, ApiSortOption, ClientSortOption, FilterState } from '@/components/filter-sort-bar'
@@ -25,6 +25,9 @@ export default function VietnameseNewsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [nextRefreshTime, setNextRefreshTime] = useState<Date | null>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Filter and sort state
   const [apiSort, setApiSort] = useState<ApiSortOption>('relevance')
@@ -143,6 +146,54 @@ export default function VietnameseNewsPage() {
     fetchNews(true)
   }
 
+  // Auto-refresh functionality
+  useEffect(() => {
+    if (autoRefresh) {
+      // Set initial next refresh time
+      const nextRefresh = new Date(Date.now() + 30000) // 30 seconds
+      setNextRefreshTime(nextRefresh)
+
+      // Set up interval
+      intervalRef.current = setInterval(() => {
+        fetchNews(false) // Refresh without toast
+        // Update next refresh time
+        setNextRefreshTime(new Date(Date.now() + 30000))
+      }, 30000) // 30 seconds
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+      }
+    } else {
+      // Clear interval when auto-refresh is disabled
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      setNextRefreshTime(null)
+    }
+  }, [autoRefresh, selectedCategory, apiSort])
+
+  // Countdown timer for next refresh
+  useEffect(() => {
+    if (!autoRefresh || !nextRefreshTime) return
+
+    const timer = setInterval(() => {
+      setNextRefreshTime(prev => {
+        if (!prev) return null
+        const now = Date.now()
+        if (prev.getTime() <= now) {
+          return new Date(now + 30000)
+        }
+        return prev
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [autoRefresh, nextRefreshTime])
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -183,6 +234,24 @@ export default function VietnameseNewsPage() {
                   🇬🇧 English
                 </a>
               </Button>
+
+              {/* Auto-refresh toggle */}
+              <Button
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                variant={autoRefresh ? 'default' : 'outline'}
+                size="sm"
+                className={`h-9 px-3 font-medium ${autoRefresh ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+              >
+                <Clock className={`h-3.5 w-3.5 mr-1.5 ${autoRefresh ? 'animate-pulse' : ''}`} />
+                {autoRefresh && nextRefreshTime ? (
+                  <span className="tabular-nums">
+                    {Math.max(0, Math.ceil((nextRefreshTime.getTime() - Date.now()) / 1000))}s
+                  </span>
+                ) : (
+                  'Auto'
+                )}
+              </Button>
+
               <Button
                 onClick={handleRefresh}
                 disabled={refreshing || loading}
