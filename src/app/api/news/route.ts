@@ -15,7 +15,16 @@ const CATEGORY_KEYWORDS: Record<string, string> = {
   all: 'news',
 }
 
-async function fetchFromGDELT(category: string, lang: string = 'en'): Promise<any[]> {
+// GDELT sort parameter mapping
+const SORT_PARAMS: Record<string, string> = {
+  relevance: 'HybridRel',
+  'date-desc': 'DateDesc',
+  'date-asc': 'DateAsc',
+  'volume-desc': 'VolumeDesc',
+  'volume-asc': 'VolumeAsc',
+}
+
+async function fetchFromGDELT(category: string, lang: string = 'en', sort: string = 'relevance'): Promise<any[]> {
   try {
     // Use a general query to get recent articles
     const keyword = CATEGORY_KEYWORDS[category] || 'news'
@@ -25,7 +34,7 @@ async function fetchFromGDELT(category: string, lang: string = 'en'): Promise<an
       format: 'json',
       maxrecords: '250',
       query: `${languageFilter} ${keyword}`,
-      sort: 'HybridRel'
+      sort: SORT_PARAMS[sort] || 'HybridRel'
     })
 
     const url = `${GDELT_GKG_API}?${params.toString()}`
@@ -110,14 +119,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || 'all'
     const lang = (searchParams.get('lang') || 'en') as 'en' | 'vi'
+    const sort = searchParams.get('sort') || 'relevance'
 
-    console.log(`[API] Fetching GDELT news - category: ${category}, lang: ${lang}`)
+    console.log(`[API] Fetching GDELT news - category: ${category}, lang: ${lang}, sort: ${sort}`)
 
     // Fetch from GDELT
-    const articles = await fetchFromGDELT(category, lang)
-
-    // Sort by importance
-    articles.sort((a, b) => b.importance - a.importance)
+    const articles = await fetchFromGDELT(category, lang, sort)
 
     // Remove duplicates by URL
     const seen = new Set<string>()

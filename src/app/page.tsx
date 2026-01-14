@@ -13,7 +13,8 @@ import { NewsCard } from '@/components/news-card'
 import { NewsArticle } from '@/types/news'
 import { getImpactBadge } from '@/lib/news-utils'
 
-type SortOption = 'impact-desc' | 'impact-asc' | 'views-desc' | 'views-asc' | 'date-desc' | 'date-asc' | 'source-asc'
+type ApiSortOption = 'relevance' | 'date-desc' | 'date-asc' | 'volume-desc' | 'volume-asc'
+type ClientSortOption = 'none' | 'source-asc' | 'source-desc' | 'impact-asc' | 'impact-desc'
 type ImpactLevel = 'all' | 'critical' | 'high' | 'medium' | 'low'
 type TrendingLevel = 'all' | 'viral' | 'hot' | 'trending' | 'rising'
 type TimeRange = 'all' | 'today' | '24h' | 'week' | 'month'
@@ -38,14 +39,20 @@ const CATEGORIES = [
 ]
 
 const SORT_OPTIONS = [
-  { value: 'impact-desc', label: 'Impact (High to Low)', icon: Flame },
-  { value: 'impact-asc', label: 'Impact (Low to High)', icon: TrendingUp },
-  { value: 'views-desc', label: 'Most Viewed', icon: Eye },
-  { value: 'views-asc', label: 'Least Viewed', icon: Eye },
-  { value: 'date-desc', label: 'Newest First', icon: Clock },
-  { value: 'date-asc', label: 'Oldest First', icon: Clock },
-  { value: 'source-asc', label: 'Source (A-Z)', icon: Newspaper },
-] as const
+  { value: 'relevance', label: 'Relevance', icon: Flame, description: 'GDELT relevance score', level: 'api' as const },
+  { value: 'volume-desc', label: 'Most Mentioned', icon: Eye, description: 'By GDELT volume', level: 'api' as const },
+  { value: 'volume-asc', label: 'Least Mentioned', icon: Eye, description: 'By GDELT volume', level: 'api' as const },
+  { value: 'date-desc', label: 'Newest', icon: Clock, description: 'Newest articles first', level: 'api' as const },
+  { value: 'date-asc', label: 'Oldest', icon: Clock, description: 'Oldest articles first', level: 'api' as const },
+]
+
+const CLIENT_SORT_OPTIONS = [
+  { value: 'none', label: 'None', icon: Activity, description: 'Use API order only', level: 'client' as const },
+  { value: 'source-asc', label: 'Source (A-Z)', icon: Newspaper, description: 'Sort by source name', level: 'client' as const },
+  { value: 'source-desc', label: 'Source (Z-A)', icon: Newspaper, description: 'Sort by source name', level: 'client' as const },
+  { value: 'impact-desc', label: 'Impact (High→Low)', icon: Flame, description: 'By calculated impact', level: 'client' as const },
+  { value: 'impact-asc', label: 'Impact (Low→High)', icon: TrendingUp, description: 'By calculated impact', level: 'client' as const },
+]
 
 const IMPACT_LEVELS = [
   { value: 'all', label: 'All Levels', color: 'bg-muted' },
@@ -79,7 +86,8 @@ export default function NewsPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   // Filter and sort state
-  const [sortBy, setSortBy] = useState<SortOption>('impact-desc')
+  const [apiSort, setApiSort] = useState<ApiSortOption>('relevance')
+  const [clientSort, setClientSort] = useState<ClientSortOption>('none')
   const [filters, setFilters] = useState<FilterState>({
     impactLevel: 'all',
     trendingLevel: 'all',
@@ -88,7 +96,8 @@ export default function NewsPage() {
     sources: [],
   })
   const [showFilters, setShowFilters] = useState(false)
-  const [showSort, setShowSort] = useState(false)
+  const [showApiSort, setShowApiSort] = useState(false)
+  const [showClientSort, setShowClientSort] = useState(false)
 
   const fetchNews = async (showRefreshToast = true, forceRefresh = false) => {
     if (showRefreshToast) {
@@ -99,7 +108,7 @@ export default function NewsPage() {
 
     try {
       const refreshParam = forceRefresh ? '&refresh=true' : ''
-      const response = await fetch(`/api/news?category=${selectedCategory}${refreshParam}`)
+      const response = await fetch(`/api/news?category=${selectedCategory}&sort=${apiSort}${refreshParam}`)
       if (!response.ok) throw new Error('Failed to fetch news')
 
       const data = await response.json()
@@ -127,7 +136,7 @@ export default function NewsPage() {
 
   useEffect(() => {
     fetchNews(false)
-  }, [selectedCategory])
+  }, [selectedCategory, apiSort])
 
   const handleRefresh = () => {
     fetchNews(true, true)
@@ -171,10 +180,10 @@ export default function NewsPage() {
       minViews: 0,
       sources: [],
     })
-    setSortBy('impact-desc')
+    setClientSort('none')
   }
 
-  // Apply filters and sorting
+  // Apply filters and client-side sorting
   const processedArticles = useMemo(() => {
     let filtered = selectedCategory === 'all'
       ? [...articles]
@@ -219,28 +228,26 @@ export default function NewsPage() {
       filtered = filtered.filter(article => filters.sources.includes(article.source))
     }
 
-    // Apply sorting - create a new array to avoid mutation
+    // Apply client-side sorting - create a new array to avoid mutation
+    if (clientSort === 'none') {
+      return filtered
+    }
+
     return [...filtered].sort((a, b) => {
-      switch (sortBy) {
+      switch (clientSort) {
         case 'impact-desc':
           return b.importance - a.importance
         case 'impact-asc':
           return a.importance - b.importance
-        case 'views-desc':
-          return b.views - a.views
-        case 'views-asc':
-          return a.views - b.views
-        case 'date-desc':
-          return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-        case 'date-asc':
-          return new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime()
         case 'source-asc':
           return a.source.localeCompare(b.source)
+        case 'source-desc':
+          return b.source.localeCompare(a.source)
         default:
           return 0
       }
     })
-  }, [articles, selectedCategory, filters, sortBy])
+  }, [articles, selectedCategory, filters, clientSort])
 
   const ImpactBadge = ({ label, bg, text, border, icon: Icon }: any) => (
     <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${bg} ${text} ${border} border shadow-sm`}>
@@ -360,34 +367,81 @@ export default function NewsPage() {
             {!loading && articles.length > 0 && (
               <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Sort Dropdown */}
-                  <Popover open={showSort} onOpenChange={setShowSort}>
+                  {/* API Sort Dropdown */}
+                  <Popover open={showApiSort} onOpenChange={setShowApiSort}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                        <SlidersHorizontal className="h-3.5 w-3.5" />
-                        {SORT_OPTIONS.find(s => s.value === sortBy)?.label.split(' ')[0]}
+                        <Flame className="h-3.5 w-3.5 text-primary" />
+                        {SORT_OPTIONS.find(s => s.value === apiSort)?.label}
                         <ChevronDown className="h-3 w-3" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-52 p-1.5" align="start">
-                      <div className="space-y-0.5">
+                    <PopoverContent className="w-56 p-0" align="start">
+                      <div className="p-2 pb-1 border-b border-border/50">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">API Sort (Re-fetch)</p>
+                      </div>
+                      <div className="p-1.5 pt-1 space-y-0.5">
                         {SORT_OPTIONS.map((option) => {
                           const Icon = option.icon
                           return (
                             <button
                               key={option.value}
                               onClick={() => {
-                                setSortBy(option.value)
-                                setShowSort(false)
+                                setApiSort(option.value)
+                                setShowApiSort(false)
                               }}
                               className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs transition-colors text-left ${
-                                sortBy === option.value
+                                apiSort === option.value
                                   ? 'bg-primary text-primary-foreground'
                                   : 'hover:bg-muted text-foreground'
                               }`}
                             >
                               <Icon className="h-3.5 w-3.5 shrink-0" />
-                              {option.label}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{option.label}</div>
+                                <div className="text-[10px] opacity-70 truncate">{option.description}</div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Client Sort Dropdown */}
+                  <Popover open={showClientSort} onOpenChange={setShowClientSort}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                        <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                        {CLIENT_SORT_OPTIONS.find(s => s.value === clientSort)?.label}
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-0" align="start">
+                      <div className="p-2 pb-1 border-b border-border/50">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Local Sort (No re-fetch)</p>
+                      </div>
+                      <div className="p-1.5 pt-1 space-y-0.5">
+                        {CLIENT_SORT_OPTIONS.map((option) => {
+                          const Icon = option.icon
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => {
+                                setClientSort(option.value)
+                                setShowClientSort(false)
+                              }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs transition-colors text-left ${
+                                clientSort === option.value
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'hover:bg-muted text-foreground'
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{option.label}</div>
+                                <div className="text-[10px] opacity-70 truncate">{option.description}</div>
+                              </div>
                             </button>
                           )
                         })}
