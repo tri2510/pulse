@@ -94,15 +94,27 @@ export default function VietnameseNewsPage() {
                 <p className="text-xs text-muted-foreground font-medium">Tin tức thời sự từ GDELT</p>
               </div>
             </div>
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing || loading}
-              size="sm"
-              className="h-9 px-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all text-sm"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Đang tải' : 'Làm mới'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 font-medium"
+              >
+                <a href="/" className="flex items-center gap-1.5">
+                  🇬🇧 English
+                </a>
+              </Button>
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing || loading}
+                size="sm"
+                className="h-9 px-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all text-sm"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Đang tải' : 'Làm mới'}
+              </Button>
+            </div>
           </div>
         </div>
 
