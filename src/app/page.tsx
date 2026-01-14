@@ -1,31 +1,17 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { RefreshCw, HelpCircle, Newspaper, SlidersHorizontal, X, ChevronDown, Filter, Eye, Flame, Zap, ArrowUpRight, TrendingUp, Activity, Clock, ExternalLink } from 'lucide-react'
+import { RefreshCw, HelpCircle, Newspaper, Filter, X, ChevronDown, Flame, Zap, ArrowUpRight, TrendingUp, Activity, Clock } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { NewsCard } from '@/components/news-card'
+import { FilterAndSortBar, ApiSortOption, ClientSortOption, FilterState } from '@/components/filter-sort-bar'
 import { NewsArticle } from '@/types/news'
 import { getImpactBadge } from '@/lib/news-utils'
-
-type ApiSortOption = 'relevance' | 'date-desc' | 'date-asc' | 'volume-desc' | 'volume-asc'
-type ClientSortOption = 'none' | 'source-asc' | 'source-desc' | 'impact-asc' | 'impact-desc'
-type ImpactLevel = 'all' | 'critical' | 'high' | 'medium' | 'low'
-type TrendingLevel = 'all' | 'viral' | 'hot' | 'trending' | 'rising'
-type TimeRange = 'all' | 'today' | '24h' | 'week' | 'month'
-
-interface FilterState {
-  impactLevel: ImpactLevel
-  trendingLevel: TrendingLevel
-  timeRange: TimeRange
-  minViews: number
-  sources: string[]
-}
 
 const CATEGORIES = [
   { id: 'all', label: 'All News', icon: Newspaper },
@@ -37,46 +23,6 @@ const CATEGORIES = [
   { id: 'entertainment', label: 'Entertainment', icon: Activity },
   { id: 'politics', label: 'Politics', icon: Activity },
 ]
-
-const SORT_OPTIONS = [
-  { value: 'relevance', label: 'Relevance', icon: Flame, description: 'GDELT relevance score', level: 'api' as const },
-  { value: 'volume-desc', label: 'Most Mentioned', icon: Eye, description: 'By GDELT volume', level: 'api' as const },
-  { value: 'volume-asc', label: 'Least Mentioned', icon: Eye, description: 'By GDELT volume', level: 'api' as const },
-  { value: 'date-desc', label: 'Newest', icon: Clock, description: 'Newest articles first', level: 'api' as const },
-  { value: 'date-asc', label: 'Oldest', icon: Clock, description: 'Oldest articles first', level: 'api' as const },
-]
-
-const CLIENT_SORT_OPTIONS = [
-  { value: 'none', label: 'None', icon: Activity, description: 'Use API order only', level: 'client' as const },
-  { value: 'source-asc', label: 'Source (A-Z)', icon: Newspaper, description: 'Sort by source name', level: 'client' as const },
-  { value: 'source-desc', label: 'Source (Z-A)', icon: Newspaper, description: 'Sort by source name', level: 'client' as const },
-  { value: 'impact-desc', label: 'Impact (High→Low)', icon: Flame, description: 'By calculated impact', level: 'client' as const },
-  { value: 'impact-asc', label: 'Impact (Low→High)', icon: TrendingUp, description: 'By calculated impact', level: 'client' as const },
-]
-
-const IMPACT_LEVELS = [
-  { value: 'all', label: 'All Levels', color: 'bg-muted' },
-  { value: 'critical', label: 'Critical Only', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
-  { value: 'high', label: 'High & Critical', color: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
-  { value: 'medium', label: 'Medium+', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
-  { value: 'low', label: 'Low+', color: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' },
-] as const
-
-const TRENDING_LEVELS = [
-  { value: 'all', label: 'All' },
-  { value: 'viral', label: 'Viral Only', minViews: 800 },
-  { value: 'hot', label: 'Hot+', minViews: 500 },
-  { value: 'trending', label: 'Trending+', minViews: 300 },
-  { value: 'rising', label: 'Rising+', minViews: 150 },
-] as const
-
-const TIME_RANGES = [
-  { value: 'all', label: 'All Time' },
-  { value: 'today', label: 'Today', hours: 24 },
-  { value: '24h', label: 'Last 24 Hours', hours: 24 },
-  { value: 'week', label: 'This Week', hours: 168 },
-  { value: 'month', label: 'This Month', hours: 720 },
-] as const
 
 export default function NewsPage() {
   const [articles, setArticles] = useState<NewsArticle[]>([])
@@ -95,9 +41,6 @@ export default function NewsPage() {
     minViews: 0,
     sources: [],
   })
-  const [showFilters, setShowFilters] = useState(false)
-  const [showApiSort, setShowApiSort] = useState(false)
-  const [showClientSort, setShowClientSort] = useState(false)
 
   const fetchNews = async (showRefreshToast = true, forceRefresh = false) => {
     if (showRefreshToast) {
@@ -152,35 +95,6 @@ export default function NewsPage() {
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffHours < 48) return 'Yesterday'
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  // Get available sources from articles
-  const availableSources = useMemo(() => {
-    const sources = new Set(articles.map(a => a.source))
-    return Array.from(sources).sort()
-  }, [articles])
-
-  // Count active filters
-  const activeFilterCount = useMemo(() => {
-    let count = 0
-    if (filters.impactLevel !== 'all') count++
-    if (filters.trendingLevel !== 'all') count++
-    if (filters.timeRange !== 'all') count++
-    if (filters.minViews > 0) count++
-    if (filters.sources.length > 0) count++
-    return count
-  }, [filters])
-
-  // Reset filters
-  const resetFilters = () => {
-    setFilters({
-      impactLevel: 'all',
-      trendingLevel: 'all',
-      timeRange: 'all',
-      minViews: 0,
-      sources: [],
-    })
-    setClientSort('none')
   }
 
   // Apply filters and client-side sorting
@@ -365,275 +279,17 @@ export default function NewsPage() {
           <TabsContent value={selectedCategory} className="mt-0 focus-visible:outline-none focus-visible:ring-0">
             {/* Filter and Sort Bar */}
             {!loading && articles.length > 0 && (
-              <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* API Sort Dropdown */}
-                  <Popover open={showApiSort} onOpenChange={setShowApiSort}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                        <Flame className="h-3.5 w-3.5 text-primary" />
-                        {SORT_OPTIONS.find(s => s.value === apiSort)?.label}
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-0" align="start">
-                      <div className="p-2 pb-1 border-b border-border/50">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">API Sort (Re-fetch)</p>
-                      </div>
-                      <div className="p-1.5 pt-1 space-y-0.5">
-                        {SORT_OPTIONS.map((option) => {
-                          const Icon = option.icon
-                          return (
-                            <button
-                              key={option.value}
-                              onClick={() => {
-                                setApiSort(option.value)
-                                setShowApiSort(false)
-                              }}
-                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs transition-colors text-left ${
-                                apiSort === option.value
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'hover:bg-muted text-foreground'
-                              }`}
-                            >
-                              <Icon className="h-3.5 w-3.5 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{option.label}</div>
-                                <div className="text-[10px] opacity-70 truncate">{option.description}</div>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Client Sort Dropdown */}
-                  <Popover open={showClientSort} onOpenChange={setShowClientSort}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                        <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                        {CLIENT_SORT_OPTIONS.find(s => s.value === clientSort)?.label}
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-0" align="start">
-                      <div className="p-2 pb-1 border-b border-border/50">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Local Sort (No re-fetch)</p>
-                      </div>
-                      <div className="p-1.5 pt-1 space-y-0.5">
-                        {CLIENT_SORT_OPTIONS.map((option) => {
-                          const Icon = option.icon
-                          return (
-                            <button
-                              key={option.value}
-                              onClick={() => {
-                                setClientSort(option.value)
-                                setShowClientSort(false)
-                              }}
-                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs transition-colors text-left ${
-                                clientSort === option.value
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'hover:bg-muted text-foreground'
-                              }`}
-                            >
-                              <Icon className="h-3.5 w-3.5 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{option.label}</div>
-                                <div className="text-[10px] opacity-70 truncate">{option.description}</div>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Filter Button */}
-                  <Popover open={showFilters} onOpenChange={setShowFilters}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1.5 text-xs relative"
-                      >
-                        <Filter className="h-3.5 w-3.5" />
-                        Filters
-                        {activeFilterCount > 0 && (
-                          <Badge className="h-4 px-1 text-[10px] min-w-[16px] flex items-center justify-center bg-primary text-primary-foreground">
-                            {activeFilterCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 p-4" align="start" side="bottom">
-                      <div className="space-y-4">
-                        {/* Header */}
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-sm">Filters</h3>
-                          {activeFilterCount > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={resetFilters}
-                              className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              Reset all
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Impact Level Filter */}
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-muted-foreground">Impact Level</label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {IMPACT_LEVELS.map((level) => (
-                              <button
-                                key={level.value}
-                                onClick={() => setFilters(f => ({ ...f, impactLevel: level.value }))}
-                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  filters.impactLevel === level.value
-                                    ? level.color + ' ring-1 ring-ring'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                }`}
-                              >
-                                {level.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Trending Filter */}
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-muted-foreground">Trending Status</label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {TRENDING_LEVELS.map((level) => (
-                              <button
-                                key={level.value}
-                                onClick={() => setFilters(f => ({ ...f, trendingLevel: level.value }))}
-                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  filters.trendingLevel === level.value
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                }`}
-                              >
-                                {level.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Time Range Filter */}
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-muted-foreground">Time Range</label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {TIME_RANGES.map((range) => (
-                              <button
-                                key={range.value}
-                                onClick={() => setFilters(f => ({ ...f, timeRange: range.value }))}
-                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  filters.timeRange === range.value
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                }`}
-                              >
-                                {range.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Source Filter */}
-                        {availableSources.length > 0 && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-medium text-muted-foreground">Sources</label>
-                            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                              {availableSources.map((source) => (
-                                <button
-                                  key={source}
-                                  onClick={() => {
-                                    setFilters(f => ({
-                                      ...f,
-                                      sources: f.sources.includes(source)
-                                        ? f.sources.filter(s => s !== source)
-                                        : [...f.sources, source]
-                                    }))
-                                  }}
-                                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                                    filters.sources.includes(source)
-                                      ? 'bg-primary text-primary-foreground'
-                                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                  }`}
-                                >
-                                  {source}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Apply Button */}
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          onClick={() => setShowFilters(false)}
-                        >
-                          Show Results ({processedArticles.length})
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Active Filters Display */}
-                  {activeFilterCount > 0 && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {filters.impactLevel !== 'all' && (
-                        <Badge variant="secondary" className="h-6 gap-1 text-xs">
-                          Impact: {IMPACT_LEVELS.find(l => l.value === filters.impactLevel)?.label}
-                          <X
-                            className="h-3 w-3 cursor-pointer hover:text-foreground"
-                            onClick={() => setFilters(f => ({ ...f, impactLevel: 'all' }))}
-                          />
-                        </Badge>
-                      )}
-                      {filters.trendingLevel !== 'all' && (
-                        <Badge variant="secondary" className="h-6 gap-1 text-xs">
-                          {TRENDING_LEVELS.find(l => l.value === filters.trendingLevel)?.label}
-                          <X
-                            className="h-3 w-3 cursor-pointer hover:text-foreground"
-                            onClick={() => setFilters(f => ({ ...f, trendingLevel: 'all' }))}
-                          />
-                        </Badge>
-                      )}
-                      {filters.timeRange !== 'all' && (
-                        <Badge variant="secondary" className="h-6 gap-1 text-xs">
-                          {TIME_RANGES.find(r => r.value === filters.timeRange)?.label}
-                          <X
-                            className="h-3 w-3 cursor-pointer hover:text-foreground"
-                            onClick={() => setFilters(f => ({ ...f, timeRange: 'all' }))}
-                          />
-                        </Badge>
-                      )}
-                      {filters.sources.length > 0 && (
-                        <Badge variant="secondary" className="h-6 gap-1 text-xs">
-                          {filters.sources.length} source{filters.sources.length > 1 ? 's' : ''}
-                          <X
-                            className="h-3 w-3 cursor-pointer hover:text-foreground"
-                            onClick={() => setFilters(f => ({ ...f, sources: [] }))}
-                          />
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Results Count */}
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                  <span>
-                    Showing <span className="font-semibold text-foreground">{processedArticles.length}</span> of <span className="font-semibold text-foreground">{articles.length}</span> articles
-                  </span>
-                </div>
-              </div>
+              <FilterAndSortBar
+                articles={articles}
+                filters={filters}
+                setFilters={setFilters}
+                apiSort={apiSort}
+                setApiSort={setApiSort}
+                clientSort={clientSort}
+                setClientSort={setClientSort}
+                loading={loading}
+                lang="en"
+              />
             )}
 
             {loading ? (
@@ -641,13 +297,9 @@ export default function NewsPage() {
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="overflow-hidden border border-border/50">
                     <Skeleton className="h-44 w-full" />
-                    <CardHeader className="pb-3">
-                      <Skeleton className="h-3.5 w-3/4 mb-1.5" />
-                      <Skeleton className="h-3.5 w-1/2" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-3 w-full mb-1.5" />
-                      <Skeleton className="h-3 w-full mb-1.5" />
+                    <CardContent className="p-4">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-3 w-full mb-1" />
                       <Skeleton className="h-3 w-2/3" />
                     </CardContent>
                   </Card>
@@ -664,17 +316,9 @@ export default function NewsPage() {
                     No articles match your filters
                   </h3>
                   <p className="text-muted-foreground mb-5 max-w-md text-sm">
-                    {activeFilterCount > 0
-                      ? 'Try adjusting your filters or reset them to see more articles.'
-                      : 'No articles available for this category right now.'}
+                    Try adjusting your filters to see more articles.
                   </p>
                   <div className="flex gap-2">
-                    {activeFilterCount > 0 && (
-                      <Button onClick={resetFilters} variant="outline" size="sm" className="gap-2">
-                        <X className="h-3.5 w-3.5" />
-                        Clear Filters
-                      </Button>
-                    )}
                     <Button onClick={handleRefresh} size="sm" variant="outline" className="gap-2">
                       <RefreshCw className="h-3.5 w-3.5" />
                       Refresh

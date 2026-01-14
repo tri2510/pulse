@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Newspaper, RefreshCw } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { NewsCard } from '@/components/news-card'
+import { FilterAndSortBar, ApiSortOption, ClientSortOption, FilterState } from '@/components/filter-sort-bar'
 import { NewsArticle } from '@/types/news'
+import { getImpactBadge } from '@/lib/news-utils'
 
 const CATEGORIES = [
   { id: 'all', label: 'Tất cả', icon: Newspaper },
@@ -24,6 +26,17 @@ export default function VietnameseNewsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
 
+  // Filter and sort state
+  const [apiSort, setApiSort] = useState<ApiSortOption>('relevance')
+  const [clientSort, setClientSort] = useState<ClientSortOption>('none')
+  const [filters, setFilters] = useState<FilterState>({
+    impactLevel: 'all',
+    trendingLevel: 'all',
+    timeRange: 'all',
+    minViews: 0,
+    sources: [],
+  })
+
   const fetchNews = async (showToast = false) => {
     if (showToast) {
       setRefreshing(true)
@@ -32,7 +45,7 @@ export default function VietnameseNewsPage() {
     }
 
     try {
-      const response = await fetch(`/api/news?category=${selectedCategory}&lang=vi`)
+      const response = await fetch(`/api/news?category=${selectedCategory}&lang=vi&sort=${apiSort}`)
       if (!response.ok) throw new Error('Failed to fetch news')
 
       const data = await response.json()
@@ -59,7 +72,72 @@ export default function VietnameseNewsPage() {
 
   useEffect(() => {
     fetchNews(false)
-  }, [selectedCategory])
+  }, [selectedCategory, apiSort])
+
+  // Apply filters and client-side sorting
+  const processedArticles = useMemo(() => {
+    let filtered = selectedCategory === 'all'
+      ? [...articles]
+      : articles.filter(article => article.category.toLowerCase() === selectedCategory.toLowerCase())
+
+    // Apply impact level filter
+    if (filters.impactLevel !== 'all') {
+      filtered = filtered.filter(article => {
+        const impact = getImpactBadge(article.importance)
+        if (filters.impactLevel === 'critical') return impact.level === 'critical'
+        if (filters.impactLevel === 'high') return impact.level === 'critical' || impact.level === 'high'
+        if (filters.impactLevel === 'medium') return impact.level === 'critical' || impact.level === 'high' || impact.level === 'medium'
+        if (filters.impactLevel === 'low') return true
+        return true
+      })
+    }
+
+    // Apply trending level filter
+    if (filters.trendingLevel !== 'all') {
+      const trendingConfig = { viral: 800, hot: 500, trending: 300, rising: 150 }
+      if (filters.trendingLevel !== 'all') {
+        const minViews = trendingConfig[filters.trendingLevel as keyof typeof trendingConfig]
+        if (minViews) {
+          filtered = filtered.filter(article => article.views >= minViews)
+        }
+      }
+    }
+
+    // Apply time range filter
+    if (filters.timeRange !== 'all') {
+      const hoursMap = { today: 24, '24h': 24, week: 168, month: 720 }
+      const hours = hoursMap[filters.timeRange as keyof typeof hoursMap]
+      if (hours) {
+        const cutoff = Date.now() - (hours * 60 * 60 * 1000)
+        filtered = filtered.filter(article => new Date(article.publishedAt).getTime() > cutoff)
+      }
+    }
+
+    // Apply source filter
+    if (filters.sources.length > 0) {
+      filtered = filtered.filter(article => filters.sources.includes(article.source))
+    }
+
+    // Apply client-side sorting
+    if (clientSort === 'none') {
+      return filtered
+    }
+
+    return [...filtered].sort((a, b) => {
+      switch (clientSort) {
+        case 'impact-desc':
+          return b.importance - a.importance
+        case 'impact-asc':
+          return a.importance - b.importance
+        case 'source-asc':
+          return a.source.localeCompare(b.source)
+        case 'source-desc':
+          return b.source.localeCompare(a.source)
+        default:
+          return 0
+      }
+    })
+  }, [articles, selectedCategory, filters, clientSort])
 
   const handleRefresh = () => {
     fetchNews(true)
@@ -139,10 +217,20 @@ export default function VietnameseNewsPage() {
           })}
         </div>
 
-        {/* Results Count */}
-        <div className="mb-4 text-xs text-muted-foreground">
-          Hiển thị <span className="font-semibold text-foreground">{articles.length}</span> bài viết
-        </div>
+        {/* Filter and Sort Bar */}
+        {!loading && articles.length > 0 && (
+          <FilterAndSortBar
+            articles={articles}
+            filters={filters}
+            setFilters={setFilters}
+            apiSort={apiSort}
+            setApiSort={setApiSort}
+            clientSort={clientSort}
+            setClientSort={setClientSort}
+            loading={loading}
+            lang="vi"
+          />
+        )}
 
         {/* Articles Grid */}
         {loading ? (
@@ -158,7 +246,7 @@ export default function VietnameseNewsPage() {
               </Card>
             ))}
           </div>
-        ) : articles.length === 0 ? (
+        ) : processedArticles.length === 0 ? (
           <Card className="border-dashed border-border/50 bg-card/50">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <Newspaper className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -168,7 +256,7 @@ export default function VietnameseNewsPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {articles.map((article) => (
+            {processedArticles.map((article) => (
               <NewsCard
                 key={article.id}
                 article={{ ...article, relativeDate: formatDate(article.publishedAt) }}
